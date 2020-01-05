@@ -1,3 +1,5 @@
+import serial
+
 def generateMsg(text):
     msg = bytearray.fromhex("3A 00 01")
     msg.extend(text.encode('utf8'))
@@ -12,7 +14,33 @@ def generateDesc(msg):
     desc[14] = (~(sum(desc)-58)+1).to_bytes(8, byteorder='big', signed=True)[-1]
     return desc
 
-msg = generateMsg("endli gaht de schiaat")
-desc = generateDesc(msg)
-print("Desc packet: ", ''.join(format(x, '02x') for x in desc))
-print("Msg packet: ", ''.join(format(x, '02x') for x in msg))
+def generateSend():
+    msg = generateMsg("oiblin idi nahui asdf")
+    desc = generateDesc(msg)
+    
+def printHex(barray):
+    print("Bytearray: ", ''.join(format(x, '02x') for x in barray))
+
+with serial.Serial('/dev/ttyUSB0', 38400, timeout=1) as ser:
+    while True:
+        if ser.read() == b'\x15':
+            ser.write(b'\x13')
+            desc = ser.read(15)
+            ser.write(b'\x06')
+            msg = ser.read(desc[9]+2)
+            ser.write(b'\x06')
+            printHex(msg)
+            print("Received: ", msg[3:-2].decode("utf-8"))
+            text = input("Input message: ")
+            if (text == "asdf"):
+                msg = generateMsg(text)
+                desc = generateDesc(msg)    
+                ser.write(b'\x15')
+                ser.write(desc)
+                ser.write(msg)
+                text = input("Input message: ")
+            msg = generateMsg(text)
+            desc = generateDesc(msg)    
+            ser.write(b'\x15')
+            ser.write(desc)
+            ser.write(msg)
